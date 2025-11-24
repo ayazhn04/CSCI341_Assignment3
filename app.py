@@ -1,17 +1,26 @@
 from flask import Flask,render_template,request,redirect,url_for,flash
 import psycopg2
 import psycopg2.extras
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app=Flask(__name__)
-app.secret_key='my_secret_key_123'
+app.secret_key=os.environ.get('SECRET_KEY')
 
-db_host="localhost"
-db_name="caregivers_db"
-db_user="postgres"
-db_pass="Uam12072004!"
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db():
-    con=psycopg2.connect(host=db_host,database=db_name,user=db_user,password=db_pass)
+    if DATABASE_URL:
+        con = psycopg2.connect(DATABASE_URL)
+    else:
+        con=psycopg2.connect(
+            host=os.environ.get('DB_HOST'),
+            database=os.environ.get('DB_NAME'),
+            user=os.environ.get('DB_USER'),
+            password=os.environ.get('DB_PASS')
+        )
     return con
 
 @app.route('/')
