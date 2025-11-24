@@ -1,4 +1,4 @@
-from flask import Flask,render_template,request,redirect,url_for,flash
+from flask import Flask, render_template, request, redirect, url_for, flash
 import psycopg2
 import psycopg2.extras
 import os
@@ -6,44 +6,53 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app=Flask(__name__)
-app.secret_key=os.environ.get('SECRET_KEY')
+app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret_key")
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
 
 def get_db():
+    """Connect to PostgreSQL using Render DATABASE_URL or local credentials."""
     if DATABASE_URL:
-        con = psycopg2.connect(DATABASE_URL)
+        # print(f"Connecting to DATABASE_URL: {DATABASE_URL}") # Debugging
+        return psycopg2.connect(DATABASE_URL, sslmode="require")
     else:
-        con=psycopg2.connect(
-            host=os.environ.get('DB_HOST'),
-            database=os.environ.get('DB_NAME'),
-            user=os.environ.get('DB_USER'),
-            password=os.environ.get('DB_PASS')
-        )
-    return con
+        # FALLBACK: Explicitly use the Render Internal Database URL provided by the user
+        # This ensures it works on Render even if the environment variable is missing.
+        RENDER_DB_URL = "postgresql://caregivers_db_t0ce_user:AsA9TXhVgKrOpKoe89ikn2D1catmQyJJ@dpg-d4i6hah5pdvs739kpdrg-a/caregivers_db_t0ce"
+        try:
+             # Try connecting to Render DB first (in case running on Render without env var)
+            return psycopg2.connect(RENDER_DB_URL, sslmode="require")
+        except:
+             # If that fails (e.g. running locally), fall back to local credentials
+            return psycopg2.connect(
+                host=os.environ.get("DB_HOST"),
+                database=os.environ.get("DB_NAME"),
+                user=os.environ.get("DB_USER"),
+                password=os.environ.get("DB_PASS")
+            )
 
-@app.route('/init_db')
+
+@app.route("/init_db")
 def init_db():
+    """Initialize database tables + sample data."""
     con = get_db()
     cur = con.cursor()
     try:
-        # Read schema.sql
-        with open('schema.sql', 'r') as f:
-            schema_sql = f.read()
-            cur.execute(schema_sql)
-        
-        # Read data.sql
-        with open('data.sql', 'r') as f:
-            data_sql = f.read()
-            cur.execute(data_sql)
-            
+        with open("schema.sql", "r") as file:
+            sql = file.read()
+            cur.execute(sql)
+        with open("data.sql", "r") as file:
+            sql = file.read()
+            cur.execute(sql)
         con.commit()
-        return "Database initialized successfully! You can now go back to <a href='/'>Home</a>."
+        return "Database initialized successfully! <a href='/'>Go Home</a>"
     except Exception as e:
         con.rollback()
         return f"Error initializing database: {e}"
     finally:
+        cur.close()
         con.close()
 
 @app.route('/')
