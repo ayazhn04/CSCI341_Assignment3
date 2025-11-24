@@ -2,7 +2,7 @@ insert into app_user (email, given_name, surname, city, phone_number, profile_de
 values 
   ('aliya.alikyzy@care.com',  'Aliya', 'Aliyeva', 'Astana', '+77770000001', 'Experienced babysitter', 'passAliya'),
   ('askar.askuly@member.com','Askar', 'Askarov',  'Astana', '+77770000002', 'Looking for elderly caregiver', 'passAskar'),
-  ('amina.aminova@care.com', 'Amina', 'Aminova', 'Almaty', '+77010000001', 'Playmate for children', 'passAmina'),
+  ('amina.kairat@care.com', 'Amina', 'Kairat', 'Almaty', '+77010000001', 'Playmate for children', 'passKai'),
   ('aktoty.bolat@member.com', 'Aktoty', 'Bolat', 'Almaty', '+77011231122', 'Experienced babysitter', 'passAktoty'),
   ('alen.kazhymykan@member.com', 'Alen', 'Kazhymykan', 'Astana', '+77273334455', 'Looking for elderly caregiver', 'passAlen'),
   ('aiym.kossdauletova@member.com', 'Aiym', 'Kossdauletova', 'Aktobe', '+77776676767', 'Playmate for children', 'passAiym'),
@@ -20,7 +20,7 @@ values
   ('serik.sarsen@member.com', 'Serik', 'Sarsen', 'Almaty', '+77014445566', 'Searching for playmate for daughter', 'passSer'),
   ('aigerim.tursyn@member.com', 'Aigerim', 'Tursyn', 'Astana', '+77016667788', 'Needs elderly care for grandmother', 'passAig'),
   ('dias.omarov@care.com', 'Dias', 'Omarov', 'Shymkent', '+77011112233', 'Strong and patient elderly care worker', 'passDias'),
-  ('karina.zhaksylyk@member.com', 'Karina', 'Zhaksylyk', 'Astana', '+77770001122', 'Family with 3-year-old looking for help', 'passKar');
+  ('amina.aminova@member.com', 'Amina', 'Aminova', 'Astana', '+77770001122', 'Family with 3-year-old looking for help', 'passAmina');
 
 insert into caregiver (caregiver_user_id, photo, gender, caregiving_type, hourly_rate)
 values 
