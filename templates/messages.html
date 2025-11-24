@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Messages</h2>
+
+<div class="card mb-4">
+    <div class="card-header">Send a Message</div>
+    <div class="card-body">
+        <form action="{{ url_for('send_message') }}" method="POST">
+            <div class="mb-3">
+                <label for="sender_id" class="form-label">From (Sender):</label>
+                <select name="sender_id" class="form-select" required>
+                    <option value="" disabled selected>Select Sender</option>
+                    {% for user in users %}
+                    <option value="{{ user.user_id }}">{{ user.given_name }} {{ user.surname }} (ID: {{ user.user_id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="receiver_id" class="form-label">To (Receiver):</label>
+                <select name="receiver_id" class="form-select" required>
+                    <option value="" disabled selected>Select Receiver</option>
+                    {% for user in users %}
+                    <option value="{{ user.user_id }}">{{ user.given_name }} {{ user.surname }} (ID: {{ user.user_id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="content" class="form-label">Message:</label>
+                <textarea name="content" class="form-control" rows="3" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Send</button>
+        </form>
+    </div>
+</div>
+
+<h3>Inbox / Outbox (All Messages)</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Message</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for msg in messages %}
+        <tr>
+            <td>{{ msg.timestamp }}</td>
+            <td>{{ msg.sender_name }} {{ msg.sender_surname }}</td>
+            <td>{{ msg.receiver_name }} {{ msg.receiver_surname }}</td>
+            <td>{{ msg.message_content }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

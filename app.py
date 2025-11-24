@@ -11,6 +11,10 @@ app.secret_key=os.environ.get("SECRET_KEY", "fallback_secret_key")
 
 DATABASE_URL=os.environ.get("DATABASE_URL")
 
+db_host="localhost"
+db_name="caregivers_db"
+db_user="postgres"
+db_pass="Uam12072004!"
 
 def get_db():
     """Render DATABASE_URL"""
@@ -39,6 +43,20 @@ def init_db():
         with open("data.sql","r") as file:
             sql = file.read()
             cur.execute(sql)
+            
+        # Dynamically create message table since we can't modify schema.sql
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS message (
+                message_id serial primary key,
+                sender_id integer not null,
+                receiver_id integer not null,
+                message_content text not null,
+                timestamp timestamp default current_timestamp,
+                constraint message_sender_fk foreign key (sender_id) references app_user(user_id) on delete cascade,
+                constraint message_receiver_fk foreign key (receiver_id) references app_user(user_id) on delete cascade
+            );
+        """)
+        
         con.commit()
         return "initialized successfully <a href='/'>Go Home</a>"
     except Exception as e:
@@ -554,3 +572,147 @@ def delete_appointment(id):
 
 if __name__=="__main__":
     app.run(debug=True)
+
+@app.route('/messages')
+def show_messages():
+    con = get_db()
+    cur = con.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    # Get all users for the "Send Message" dropdown or list
+    cur.execute("SELECT user_id, given_name, surname FROM app_user")
+    users = cur.fetchall()
+    
+    # Simple view: Show all messages (In a real app, filter by logged-in user)
+    # Since we don't have login session yet, we'll show all messages for demo purposes
+    cur.execute("""
+        SELECT m.*, 
+               s.given_name as sender_name, s.surname as sender_surname,
+               r.given_name as receiver_name, r.surname as receiver_surname
+        FROM message m
+        JOIN app_user s ON m.sender_id = s.user_id
+        JOIN app_user r ON m.receiver_id = r.user_id
+        ORDER BY m.timestamp DESC
+    """)
+    messages = cur.fetchall()
+    con.close()
+    return render_template('messages.html', messages=messages, users=users)
+
+@app.route('/messages/send', methods=['POST'])
+def send_message():
+    sender_id = request.form['sender_id']
+    receiver_id = request.form['receiver_id']
+    content = request.form['content']
+    
+    con = get_db()
+    cur = con.cursor()
+    try:
+        cur.execute("INSERT INTO message (sender_id, receiver_id, message_content) VALUES (%s, %s, %s)",
+                    (sender_id, receiver_id, content))
+        con.commit()
+        flash('Message sent!', 'success')
+    except Exception as e:
+        con.rollback()
+        flash(f'Error sending message: {e}', 'danger')
+    finally:
+        con.close()
+    return redirect(url_for('show_messages'))
+
+@app.route('/register/caregiver', methods=['GET', 'POST'])
+def register_caregiver():
+    if request.method == 'POST':
+        # App User fields
+        email = request.form['email']
+        given_name = request.form['given_name']
+        surname = request.form['surname']
+        city = request.form['city']
+        phone_number = request.form['phone_number']
+        profile_description = request.form['profile_description']
+        password = request.form['password']
+        
+        # Caregiver fields
+        photo = request.form['photo']
+        gender = request.form['gender']
+        caregiving_type = request.form['caregiving_type']
+        hourly_rate = request.form['hourly_rate']
+        
+        con = get_db()
+        cur = con.cursor()
+        try:
+            # 1. Insert into app_user
+            cur.execute("""
+                INSERT INTO app_user (email, given_name, surname, city, phone_number, profile_description, password)
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING user_id
+            """, (email, given_name, surname, city, phone_number, profile_description, password))
+            user_id = cur.fetchone()[0]
+            
+            # 2. Insert into caregiver
+            cur.execute("""
+                INSERT INTO caregiver (caregiver_user_id, photo, gender, caregiving_type, hourly_rate)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (user_id, photo, gender, caregiving_type, hourly_rate))
+            
+            con.commit()
+            flash('Caregiver registered successfully!', 'success')
+            return redirect(url_for('show_caregivers'))
+        except Exception as e:
+            con.rollback()
+            flash(f'Error registering caregiver: {e}', 'danger')
+        finally:
+            con.close()
+    return render_template('register_caregiver.html')
+
+@app.route('/register/member', methods=['GET', 'POST'])
+def register_member():
+    if request.method == 'POST':
+        # App User fields
+        email = request.form['email']
+        given_name = request.form['given_name']
+        surname = request.form['surname']
+        city = request.form['city']
+        phone_number = request.form['phone_number']
+        profile_description = request.form['profile_description']
+        password = request.form['password']
+        
+        # Member fields
+        house_rules = request.form['house_rules']
+        dependent_description = request.form['dependent_description']
+        
+        # Address fields
+        house_number = request.form['house_number']
+        street = request.form['street']
+        town = request.form['town']
+        
+        con = get_db()
+        cur = con.cursor()
+        try:
+            # 1. Insert into app_user
+            cur.execute("""
+                INSERT INTO app_user (email, given_name, surname, city, phone_number, profile_description, password)
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING user_id
+            """, (email, given_name, surname, city, phone_number, profile_description, password))
+            user_id = cur.fetchone()[0]
+            
+            # 2. Insert into member
+            cur.execute("""
+                INSERT INTO member (member_user_id, house_rules, dependent_description)
+                VALUES (%s, %s, %s)
+            """, (user_id, house_rules, dependent_description))
+            
+            # 3. Insert into address
+            # Only insert if address fields are provided (optional but good practice)
+            if house_number or street or town:
+                 # Ensure numeric conversion for house_number if needed, or handle empty string
+                h_num = house_number if house_number else None
+                cur.execute("""
+                    INSERT INTO address (member_user_id, house_number, street, town)
+                    VALUES (%s, %s, %s, %s)
+                """, (user_id, h_num, street, town))
+            
+            con.commit()
+            flash('Member registered successfully!', 'success')
+            return redirect(url_for('show_members'))
+        except Exception as e:
+            con.rollback()
+            flash(f'Error registering member: {e}', 'danger')
+        finally:
+            con.close()
+    return render_template('register_member.html')
