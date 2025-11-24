@@ -44,19 +44,6 @@ def init_db():
             sql = file.read()
             cur.execute(sql)
             
-        # Dynamically create message table since we can't modify schema.sql
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS message (
-                message_id serial primary key,
-                sender_id integer not null,
-                receiver_id integer not null,
-                message_content text not null,
-                timestamp timestamp default current_timestamp,
-                constraint message_sender_fk foreign key (sender_id) references app_user(user_id) on delete cascade,
-                constraint message_receiver_fk foreign key (receiver_id) references app_user(user_id) on delete cascade
-            );
-        """)
-        
         con.commit()
         return "initialized successfully <a href='/'>Go Home</a>"
     except Exception as e:
