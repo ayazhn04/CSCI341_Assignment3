@@ -23,6 +23,29 @@ def get_db():
         )
     return con
 
+@app.route('/init_db')
+def init_db():
+    con = get_db()
+    cur = con.cursor()
+    try:
+        # Read schema.sql
+        with open('schema.sql', 'r') as f:
+            schema_sql = f.read()
+            cur.execute(schema_sql)
+        
+        # Read data.sql
+        with open('data.sql', 'r') as f:
+            data_sql = f.read()
+            cur.execute(data_sql)
+            
+        con.commit()
+        return "Database initialized successfully! You can now go back to <a href='/'>Home</a>."
+    except Exception as e:
+        con.rollback()
+        return f"Error initializing database: {e}"
+    finally:
+        con.close()
+
 @app.route('/')
 def index():
     return render_template('index.html')
